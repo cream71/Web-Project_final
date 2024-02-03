@@ -1,6 +1,7 @@
 from django import forms 
 from .forms import *
 from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
 from .models import Post
 from django.contrib import messages 
 # Create your views here.
@@ -19,29 +20,30 @@ def home_view(request, tag=None):
     return render(request, 'a_posts/home.html', context)
 
 
-
+@login_required
 def post_create_view(request):
     form = PostCreateForm()
     if request.method == 'POST':
         form = PostCreateForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save()  # Save the form data and get the Post object
+            post.author = request.user
             form.save()  # Save the form data to create the Post object
             post.tags.set(form.cleaned_data['tags'])
             return redirect('home')
     return render(request, 'a_posts/post_create.html', {'form': form})
-
+@login_required
 def post_delete_view(request,pk):
-    post = get_object_or_404(Post, id=pk)
+    post = get_object_or_404(Post, id=pk, author=request.user)
 
     if request.method == "POST":
         post.delete()
         messages.success(request, 'Post deleted Successfully')
         return redirect('home')
     return render(request, 'a_posts/post_delete.html', {'post' : post})
-
+@login_required
 def post_edit_view(request, pk):
-    post = get_object_or_404(Post, id=pk)
+    post = get_object_or_404(Post, id=pk, author=request.user)
     form = PostEditForm(instance=post)
 
     if request.method == "POST":
